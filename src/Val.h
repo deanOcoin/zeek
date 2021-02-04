@@ -1269,21 +1269,35 @@ public:
 	// underlying value.  We provide these to enable efficient
 	// access to record fields (without requiring an intermediary Val)
 	// if we change the underlying representation of records.
-	template <typename T>
-    auto GetFieldAs(int field) const -> std::invoke_result_t<decltype(&T::Get), T>
+	// TIM: this supports GetFieldAs<uint32_t>(), etc.
+	template <typename T,
+	          typename std::enable_if_t<std::is_fundamental_v<T>, bool> = true>
+    T GetFieldAs(int field) const
 		{
-		auto field_ptr = GetField(field);
-		auto field_val_ptr = static_cast<T*>(field_ptr.get());
-		return field_val_ptr->Get();
+		// if ( ! (*is_in_record)[field] )
+		// 	// TODO: i feel like this should be an internal error and fail parsing
+		// 	return T{};
+
+		return (*record_val)[field].GetFieldAs<T>();
 		}
 
-	template <typename T>
-    auto GetFieldAs(const char* field) const -> std::invoke_result_t<decltype(&T::Get), T>
+	// TIM: this supports GetFieldAs<StringVal>(), etc
+	template <typename T,
+	          typename std::enable_if_t<!std::is_fundamental_v<T>, bool> = true>
+	auto GetFieldAs(int field) const -> std::invoke_result_t<decltype(&T::Get), T>
 		{
-		auto field_ptr = GetField(field);
-		auto field_val_ptr = static_cast<T*>(field_ptr.get());
-		return field_val_ptr->Get();
+		// if ( ! (*is_in_record)[field] )
+		// 	// TODO: i feel like this should be an internal error and fail parsing
+		// 	return T{};
+
+		return (*record_val)[field].GetFieldAs<T>();
 		}
+
+	// template <typename T>
+    // auto GetFieldAs(const char* field) const -> std::invoke_result_t<decltype(&T::Get), T>
+	// 	{
+	// 	return nullptr;
+	// 	}
 
 	/**
 	 * Looks up the value of a field by field name.  If the field doesn't
