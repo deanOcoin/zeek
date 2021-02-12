@@ -46,6 +46,7 @@ union ZVal {
 	// Convert to a higher-level script value.  The caller needs to
 	// ensure that they're providing the correct type.
 	ValPtr ToVal(const TypePtr& t) const;
+	ValPtr ToVal(TypeTag t) const;
 
 	// Whether a low-level ZVal error has occurred.  Used to generate
 	// run-time error messages.
@@ -54,49 +55,6 @@ union ZVal {
 	// Resets the notion of low-level-error-occurred.
 	static void ClearZValErrorStatus()	{ zval_error_status = false; }
 
-	// TIM: the problem we run into here is that I can't call Get()
-	// TIM: on the objects in the union, because they're not actually
-	// TIM: defined yet. I'd move these up into Val, but that creates
-	// TIM: a bit of a dependency on Val actually knowing what is in
-	// TIM: the union. If that's ok, that's likely the way forward.
-	template <typename T>
-	T GetFieldAs(int field) const
-		{
-		if constexpr ( std::is_same_v<T, double> )
-			return double_val;
-		else if constexpr ( std::is_same_v<T, bro_int_t> )
-			return int_val;
-		else if constexpr ( std::is_same_v<T, StringVal> )
-			return string_val;
-		else if constexpr ( std::is_same_v<T, CountVal> )
-			return addr_val;
-		else if constexpr ( std::is_same_v<T, AddrVal> )
-			return addr_val;
-		else if constexpr ( std::is_same_v<T, SubNetVal> )
-			return subnet_val;
-		else if constexpr ( std::is_same_v<T, File> )
-			return file_val;
-		else if constexpr ( std::is_same_v<T, Func> )
-			return func_val;
-		else if constexpr ( std::is_same_v<T, ListVal> )
-			return list_val;
-		else if constexpr ( std::is_same_v<T, OpaqueVal> )
-			return opaque_val;
-		else if constexpr ( std::is_same_v<T, PatternVal> )
-			return re_val;
-		else if constexpr ( std::is_same_v<T, TableVal> )
-			return table_val;
-		else if constexpr ( std::is_same_v<T, RecordVal> )
-			return record_val;
-		else if constexpr ( std::is_same_v<T, VectorVal> )
-			return vector_val;
-		else if constexpr ( std::is_same_v<T, Type> )
-			return type_val;
-
-		return nullptr;
-		}
-
-private:
 	friend void DeleteManagedType(ZVal& v);
 
 	// Used for bool, int, enum.

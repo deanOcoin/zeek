@@ -3439,9 +3439,9 @@ const char* conn_id_string(zeek::Val* c)
 	auto id_r = id->As<zeek::RecordVal*>();
 
 	const zeek::IPAddr& orig_h = id_r->GetFieldAs<zeek::AddrVal>(0);
-	uint32_t orig_p = id_r->GetFieldAs<zeek::PortVal>(1)->Port();
+	uint32_t orig_p = id_r->GetFieldAs<zeek::PortVal>(1);
 	const zeek::IPAddr& resp_h = id_r->GetFieldAs<zeek::AddrVal>(2);
-	uint32_t resp_p = id_r->GetFieldAs<zeek::PortVal>(3)->Port();
+	uint32_t resp_p = id_r->GetFieldAs<zeek::PortVal>(3);
 
 	return zeek::util::fmt("%s/%u -> %s/%u\n", orig_h.AsString().c_str(), orig_p,
 	                       resp_h.AsString().c_str(), resp_p);

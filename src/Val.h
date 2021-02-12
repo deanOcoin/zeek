@@ -491,8 +491,6 @@ public:
 	// Returns a masked port number
 	static uint32_t Mask(uint32_t port_num, TransportProto port_type);
 
-	const PortVal* Get() const	{ return AsPortVal(); }
-
 protected:
 	friend class ValManager;
 	PortVal(uint32_t p);
@@ -1269,35 +1267,79 @@ public:
 	// underlying value.  We provide these to enable efficient
 	// access to record fields (without requiring an intermediary Val)
 	// if we change the underlying representation of records.
-	// TIM: this supports GetFieldAs<uint32_t>(), etc.
 	template <typename T,
 	          typename std::enable_if_t<std::is_fundamental_v<T>, bool> = true>
     T GetFieldAs(int field) const
 		{
-		// if ( ! (*is_in_record)[field] )
-		// 	// TODO: i feel like this should be an internal error and fail parsing
-		// 	return T{};
+		if ( ! (*is_in_record)[field] )
+			{
+			// TODO: should this be an error via reporter?
+			}
 
-		return (*record_val)[field].GetFieldAs<T>();
+		// TODO: this only support types that can be reduced to the requested
+		// type. For example, StringVal should return an error here.
+		return T{};
 		}
 
-	// TIM: this supports GetFieldAs<StringVal>(), etc
 	template <typename T,
 	          typename std::enable_if_t<!std::is_fundamental_v<T>, bool> = true>
 	auto GetFieldAs(int field) const -> std::invoke_result_t<decltype(&T::Get), T>
 		{
-		// if ( ! (*is_in_record)[field] )
-		// 	// TODO: i feel like this should be an internal error and fail parsing
-		// 	return T{};
+		if ( ! (*is_in_record)[field] )
+			{
+			// TODO: should this be an error via reporter?
+			}
 
-		return (*record_val)[field].GetFieldAs<T>();
+		// TODO: this reduces to a call to Get() on the field, based on the type.
+		if constexpr ( std::is_same_v<T, BoolVal> || std::is_same_v<T, IntVal> || std::is_same_v<T, EnumVal> )
+			return record_val->at(field).int_val;
+		else if constexpr ( std::is_same_v<T, CountVal> || std::is_same_v<T, PortVal> )
+			return record_val->at(field).uint_val;
+		else if constexpr ( std::is_same_v<T, DoubleVal> || std::is_same_v<T, TimeVal> || std::is_same_v<T, IntervalVal> )
+			return record_val->at(field).double_val;
+		else if constexpr ( std::is_same_v<T, StringVal> )
+			return record_val->at(field).string_val->Get();
+		else if constexpr ( std::is_same_v<T, AddrVal> )
+			return record_val->at(field).addr_val->Get();
+		else if constexpr ( std::is_same_v<T, SubNetVal> )
+			return record_val->at(field).subnet_val->Get();
+		else if constexpr ( std::is_same_v<T, File> )
+			return *(record_val->at(field).file_val);
+		else if constexpr ( std::is_same_v<T, Func> )
+			return *(record_val->at(field).func_val);
+		else if constexpr ( std::is_same_v<T, PatternVal> )
+			return record_val->at(field).re_val->Get();
+		else if constexpr ( std::is_same_v<T, TableVal> )
+			return record_val->at(field).table_val->Get();
+		else
+			{
+			// TODO: error here
+			}
 		}
 
-	// template <typename T>
-    // auto GetFieldAs(const char* field) const -> std::invoke_result_t<decltype(&T::Get), T>
-	// 	{
-	// 	return nullptr;
-	// 	}
+	template <typename T,
+	          typename std::enable_if_t<std::is_fundamental_v<T>, bool> = true>
+	T GetFieldAs(const char* field) const
+		{
+		int idx = GetType()->AsRecordType()->FieldOffset(field);
+
+		if ( idx < 0 )
+			reporter->InternalError("missing record field: %s", field);
+
+		return GetFieldAs<T>(idx);
+		}
+
+	template <typename T,
+	          typename std::enable_if_t<!std::is_fundamental_v<T>, bool> = true>
+	auto GetFieldAs(const char* field) const
+		{
+		int idx = GetType()->AsRecordType()->FieldOffset(field);
+
+		if ( idx < 0 )
+			reporter->InternalError("missing record field: %s", field);
+
+		return GetFieldAs<T>(idx);
+		}
 
 	/**
 	 * Looks up the value of a field by field name.  If the field doesn't

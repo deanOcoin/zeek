@@ -162,13 +162,18 @@ ZVal::ZVal(ValPtr v, const TypePtr& t)
 
 ValPtr ZVal::ToVal(const TypePtr& t) const
 	{
+	return ToVal(type->Tag());
+	}
+
+ValPtr ZVal::ToVal(TypeTag t) const
+	{
 	Val* v;
 
-	switch ( t->Tag() ) {
+	switch ( t ) {
 	case TYPE_INT:
 		return val_mgr->Int(int_val);
 
-	case TYPE_BOOL:	
+	case TYPE_BOOL:
 		return val_mgr->Bool(int_val ? true : false);
 
 	case TYPE_PORT:
